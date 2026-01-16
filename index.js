@@ -122,12 +122,22 @@ async function sendTopEmbed() {
     .setTitle("🏆 Top Coins • MVP")
     .setDescription(description)
     .setColor(0xFFD700)
-    .setFooter({ text: "Actualizado automáticamente cada 15 días" })
+    .setFooter({ text: "Actualizado automáticamente al iniciar el bot" })
     .setTimestamp();
 
-  const messages = await channel.messages.fetch({ limit: 10 });
-  await channel.bulkDelete(messages);
-  await channel.send({ embeds: [embed] });
+  // Solo se envía un mensaje único
+  const msgId = await db.get("top_msg_id");
+  let msg;
+  if (msgId) {
+    try { msg = await channel.messages.fetch(msgId); } catch { msg = null; }
+  }
+
+  if (msg) {
+    await msg.edit({ embeds: [embed] });
+  } else {
+    const sentMsg = await channel.send({ embeds: [embed] });
+    await db.set("top_msg_id", sentMsg.id);
+  }
 }
 
 /* =======================
@@ -164,12 +174,14 @@ async function sendShopOnce() {
     }
 
     if (msg) {
+      // Solo editar si ya existe
       await msg.edit({
         embeds: [embed],
         components: [row],
         files: [{ attachment: `./${bannerFile}`, name: bannerFile }]
       });
     } else {
+      // Crear mensaje solo si no existe
       const sentMsg = await channel.send({
         embeds: [embed],
         components: [row],
@@ -188,11 +200,10 @@ async function sendShopOnce() {
 ======================= */
 client.on("ready", async () => {
   console.log("🤖 Bot conectado");
-  await sendShopOnce().catch(console.error);
-  await sendTopEmbed().catch(console.error);
 
-  const interval = 15 * 24 * 60 * 60 * 1000; // 15 días
-  setInterval(() => sendTopEmbed().catch(console.error), interval);
+  // Actualizar top y tienda una sola vez al iniciar
+  await sendTopEmbed().catch(console.error);
+  await sendShopOnce().catch(console.error);
 });
 
 /* =======================
@@ -202,19 +213,19 @@ client.on("interactionCreate", async i => {
   if (!i.isChatInputCommand() && !i.isStringSelectMenu() && !i.isButton()) return;
 
   try {
-    // COINS
+    // --- COINS ---
     if (i.isChatInputCommand() && i.commandName === "coins") {
       const coins = (await db.get(`coins_${i.user.id}`)) || 0;
       return i.reply({ content: `🪙 Tienes **${coins} coins**`, ephemeral: true });
     }
 
-    // XP
+    // --- XP ---
     if (i.isChatInputCommand() && i.commandName === "xp") {
       const xp = (await db.get(`xp_${i.user.id}`)) || 0;
       return i.reply({ content: `✨ Tienes **${xp} XP**`, ephemeral: true });
     }
 
-    // DAR XP (OWNER)
+    // --- DAR XP (OWNER) ---
     if (i.isChatInputCommand() && i.commandName === "givexp") {
       if (i.user.id !== OWNER_ID) return i.reply({ content: "❌ Solo el OWNER puede dar XP", ephemeral: true });
 
@@ -239,13 +250,13 @@ client.on("interactionCreate", async i => {
       return i.reply({ embeds: [embed], ephemeral: true });
     }
 
-    // TIENDA
+    // --- TIENDA ---
     if (i.isChatInputCommand() && i.commandName === "tienda") {
       await sendShopOnce();
       return i.reply({ content: "✅ Tienda enviada correctamente", ephemeral: true });
     }
 
-    // SELECCIÓN DE ITEM
+    // --- SELECCIÓN DE ITEM ---
     if (i.isStringSelectMenu() && i.customId.startsWith("shop_select_")) {
       const [category, itemName] = i.values[0].split("|");
       const items = category.includes("MVP") ? shopItemsMVP : shopItemsDiscord;
@@ -269,7 +280,7 @@ client.on("interactionCreate", async i => {
       await i.update({ embeds: [embed], components: [row] });
     }
 
-    // BOTÓN DE COMPRA
+    // --- BOTÓN DE COMPRA ---
     if (i.isButton() && i.customId.startsWith("buy_")) {
       await i.deferReply({ ephemeral: true });
 
@@ -300,13 +311,13 @@ client.on("interactionCreate", async i => {
       return i.editReply({ content: `✅ Compra registrada correctamente. Revisa tu DM para los detalles.` });
     }
 
-    // TOP COINS
+    // --- TOP COINS (manual) ---
     if (i.isChatInputCommand() && i.commandName === "topcoins") {
       await sendTopEmbed();
       return i.reply({ content: "✅ Top coins actualizado", ephemeral: true });
     }
 
-    // OWNER – MODIFICAR COINS
+    // --- OWNER – MODIFICAR COINS ---
     if (i.isChatInputCommand() && i.commandName === "modifycoins") {
       if (i.user.id !== OWNER_ID) return i.reply({ content: "❌ Sin permiso", ephemeral: true });
 
@@ -349,4 +360,5 @@ client.on("interactionCreate", async i => {
    🔑 LOGIN
 ======================= */
 client.login(TOKEN);
+
 
