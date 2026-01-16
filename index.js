@@ -109,6 +109,7 @@ async function getTopUsers(limit = 10) {
   return users.slice(0, limit);
 }
 
+// Top Coins actualizado automáticamente
 async function sendTopEmbed() {
   const topUsers = await getTopUsers(10);
   const channel = client.channels.cache.get(TOP_CHANNEL_ID);
@@ -122,10 +123,9 @@ async function sendTopEmbed() {
     .setTitle("🏆 Top Coins • MVP")
     .setDescription(description)
     .setColor(0xFFD700)
-    .setFooter({ text: "Actualizado automáticamente al iniciar el bot" })
+    .setFooter({ text: "Actualizado automáticamente" })
     .setTimestamp();
 
-  // Solo se envía un mensaje único
   const msgId = await db.get("top_msg_id");
   let msg;
   if (msgId) {
@@ -174,14 +174,12 @@ async function sendShopOnce() {
     }
 
     if (msg) {
-      // Solo editar si ya existe
       await msg.edit({
         embeds: [embed],
         components: [row],
         files: [{ attachment: `./${bannerFile}`, name: bannerFile }]
       });
     } else {
-      // Crear mensaje solo si no existe
       const sentMsg = await channel.send({
         embeds: [embed],
         components: [row],
@@ -200,10 +198,7 @@ async function sendShopOnce() {
 ======================= */
 client.on("ready", async () => {
   console.log("🤖 Bot conectado");
-
-  // Actualizar top y tienda una sola vez al iniciar
-  await sendTopEmbed().catch(console.error);
-  await sendShopOnce().catch(console.error);
+  // NO enviamos top ni tienda automáticamente al iniciar
 });
 
 /* =======================
@@ -293,7 +288,7 @@ client.on("interactionCreate", async i => {
       if (coins < item.price) return i.editReply({ content: "❌ No tienes coins suficientes" });
 
       await db.set(`coins_${i.user.id}`, coins - item.price);
-      await sendTopEmbed();
+      await sendTopEmbed(); // ⚡ Actualiza top automáticamente
 
       const dmEmbed = new EmbedBuilder()
         .setTitle(`🛒 Compra realizada: ${item.name}`)
@@ -313,7 +308,7 @@ client.on("interactionCreate", async i => {
 
     // --- TOP COINS (manual) ---
     if (i.isChatInputCommand() && i.commandName === "topcoins") {
-      await sendTopEmbed();
+      await sendTopEmbed(); // ⚡ Actualiza top automáticamente
       return i.reply({ content: "✅ Top coins actualizado", ephemeral: true });
     }
 
@@ -347,7 +342,7 @@ client.on("interactionCreate", async i => {
       const coinsChannel = client.channels.cache.get(COINS_CHANNEL_ID);
       if (coinsChannel) await coinsChannel.send({ embeds: [embed] });
 
-      await sendTopEmbed();
+      await sendTopEmbed(); // ⚡ Actualiza top automáticamente
       return i.reply({ content: "✅ Coins modificadas correctamente.", ephemeral: true });
     }
 
@@ -360,5 +355,4 @@ client.on("interactionCreate", async i => {
    🔑 LOGIN
 ======================= */
 client.login(TOKEN);
-
 
