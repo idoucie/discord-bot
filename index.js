@@ -164,9 +164,17 @@ async function sendShopOnce() {
     }
 
     if (msg) {
-      await msg.edit({ embeds: [embed], components: [row], files: [{ attachment: `./${bannerFile}`, name: bannerFile }] });
+      await msg.edit({
+        embeds: [embed],
+        components: [row],
+        files: [{ attachment: `./${bannerFile}`, name: bannerFile }]
+      });
     } else {
-      const sentMsg = await channel.send({ embeds: [embed], components: [row], files: [{ attachment: `./${bannerFile}`, name: bannerFile }] });
+      const sentMsg = await channel.send({
+        embeds: [embed],
+        components: [row],
+        files: [{ attachment: `./${bannerFile}`, name: bannerFile }]
+      });
       await db.set(dbKey, sentMsg.id);
     }
   }
@@ -341,5 +349,4 @@ client.on("interactionCreate", async i => {
    🔑 LOGIN
 ======================= */
 client.login(TOKEN);
-
 
