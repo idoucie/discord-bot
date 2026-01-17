@@ -21,8 +21,9 @@ const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const GUILD_ID = "1415990627195289612";
 const OWNER_ID = "836076392244445194";
-const COINS_CHANNEL_ID = "1461258314825470015";
-const TOP_CHANNEL_ID = "1461258291916308541";
+
+const TOP_COINS_CHANNEL_ID = "1461258291916308541";
+const TOP_XP_CHANNEL_ID = "1461258314825470015";
 const SHOP_CHANNEL_ID = "1461258249574813707";
 
 /* =======================
@@ -32,35 +33,36 @@ const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.DirectMessages
   ]
 });
 
 /* =======================
-   🛍️ ITEMS (TODOS)
+   🛍️ ITEMS
 ======================= */
 const shopItemsMVP = [
-  { name: "Discord Nitro", price: 600, description: "Canjea un Discord Nitro Boost completo. Incluye dos boosts." },
-  { name: "Spotify por un mes", price: 550, description: "Un mes completo de Spotify Premium (LATAM)." },
-  { name: "Steam Key", price: 450, description: "Juego aleatorio de toda la tienda de Steam." },
-  { name: "Discord Nitro Classic", price: 350, description: "Discord Nitro Classic básico." },
-  { name: "Karaoke con Fani & Misa", price: 300, description: "Canal privado para escuchar cantar por una hora. Prohibido grabar." },
-  { name: "Creepypasta leído por Fani & Misa", price: 200, description: "Las owners leerán un texto de tu elección." },
-  { name: "Pase para compartir rol personalizado", price: 170, description: "Permite compartir un rol personalizado con otro miembro." },
-  { name: "Pase para canal personalizado", price: 150, description: "Acceso a un canal personalizado." },
-  { name: "Cambio de color de rol personalizado", price: 100, description: "Cambio único de color del rol." }
+  { name: "Discord Nitro", price: 600, description: "Discord Nitro completo con boosts." },
+  { name: "Spotify 1 mes", price: 550, description: "Spotify Premium LATAM." },
+  { name: "Steam Key", price: 450, description: "Juego aleatorio de Steam." },
+  { name: "Nitro Classic", price: 350, description: "Discord Nitro Classic." },
+  { name: "Karaoke con Owners", price: 300, description: "Canal privado 1 hora." },
+  { name: "Creepypasta", price: 200, description: "Lectura personalizada." },
+  { name: "Compartir rol", price: 170, description: "Comparte tu rol." },
+  { name: "Canal personalizado", price: 150, description: "Canal privado." },
+  { name: "Cambio de color", price: 100, description: "Cambio de color de rol." }
 ];
 
 const shopItemsDiscord = [
-  { name: "Canal personalizado", price: 320, description: "Canal privado para 3 miembros." },
-  { name: "Color cromático para rol personalizado", price: 220, description: "Rol cromático durante 1 mes." },
-  { name: "Boosters", price: 120, description: "Apoya el servidor con boosts." },
-  { name: "Silenciamiento a un miembro", price: 100, description: "Mute por una hora (no staff)." },
-  { name: "Rol personalizado", price: 80, description: "Rol personalizado sin color." },
-  { name: "Icono para rol personalizado", price: 60, description: "Icono para tu rol personalizado." },
-  { name: "Añadir color al rol personalizado", price: 50, description: "Desbloquea el color del rol." },
-  { name: "Añadir un sticker", price: 40, description: "Añade un sticker al servidor." },
-  { name: "Añadir un emoji", price: 30, description: "Añade un emoji al servidor." }
+  { name: "Canal privado x3", price: 320, description: "Canal para 3 miembros." },
+  { name: "Rol cromático", price: 220, description: "Rol cromático 1 mes." },
+  { name: "Boost", price: 120, description: "Apoyo al servidor." },
+  { name: "Mute 1h", price: 100, description: "Mute a un miembro." },
+  { name: "Rol personalizado", price: 80, description: "Rol sin color." },
+  { name: "Icono de rol", price: 60, description: "Icono personalizado." },
+  { name: "Color de rol", price: 50, description: "Añadir color." },
+  { name: "Sticker", price: 40, description: "Añadir sticker." },
+  { name: "Emoji", price: 30, description: "Añadir emoji." }
 ];
 
 const ALL_ITEMS = [...shopItemsMVP, ...shopItemsDiscord];
@@ -72,21 +74,24 @@ const commands = [
   new SlashCommandBuilder().setName("coins").setDescription("Ver tus coins"),
   new SlashCommandBuilder().setName("xp").setDescription("Ver tu XP"),
   new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
-  new SlashCommandBuilder().setName("tienda").setDescription("Mostrar tienda"),
-  new SlashCommandBuilder().setName("topcoins").setDescription("Ver top coins"),
-  new SlashCommandBuilder().setName("givexp")
-    .setDescription("Dar XP (OWNER)")
-    .addUserOption(o => o.setName("usuario").setDescription("Usuario").setRequired(true))
-    .addIntegerOption(o => o.setName("cantidad").setDescription("Cantidad").setRequired(true)),
+  new SlashCommandBuilder().setName("tienda").setDescription("Enviar tienda"),
+  new SlashCommandBuilder().setName("topcoins").setDescription("Actualizar top coins"),
+  new SlashCommandBuilder().setName("topxp").setDescription("Actualizar top XP"),
+
   new SlashCommandBuilder().setName("modifycoins")
-    .setDescription("Modificar coins (OWNER)")
-    .addUserOption(o => o.setName("usuario").setDescription("Usuario").setRequired(true))
-    .addIntegerOption(o => o.setName("cantidad").setDescription("Cantidad").setRequired(true))
-    .addStringOption(o => o.setName("razon").setDescription("Razón").setRequired(true))
+    .setDescription("Sumar o restar coins (OWNER)")
+    .addUserOption(o => o.setName("usuario").setRequired(true))
+    .addIntegerOption(o => o.setName("cantidad").setRequired(true))
+    .addStringOption(o => o.setName("razon").setRequired(true)),
+
+  new SlashCommandBuilder().setName("modifyxp")
+    .setDescription("Sumar o restar XP (OWNER)")
+    .addUserOption(o => o.setName("usuario").setRequired(true))
+    .addIntegerOption(o => o.setName("cantidad").setRequired(true))
 ].map(c => c.toJSON());
 
 /* =======================
-   🚀 REGISTRAR
+   🚀 REGISTRO
 ======================= */
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 (async () => {
@@ -95,64 +100,61 @@ const rest = new REST({ version: "10" }).setToken(TOKEN);
 })();
 
 /* =======================
-   🔝 TOP COINS
+   🔝 TOP SYSTEM
 ======================= */
-async function sendTopEmbed() {
+async function sendTop(type, channelId, title, emoji) {
   const all = await db.all();
   const users = all
-    .filter(x => x.id.startsWith("coins_"))
-    .map(x => ({ id: x.id.replace("coins_", ""), coins: x.value }))
-    .sort((a, b) => b.coins - a.coins)
+    .filter(x => x.id.startsWith(`${type}_`))
+    .map(x => ({ id: x.id.replace(`${type}_`, ""), value: x.value }))
+    .sort((a, b) => b.value - a.value)
     .slice(0, 10);
 
-  const channel = client.channels.cache.get(TOP_CHANNEL_ID);
+  const channel = client.channels.cache.get(channelId);
   if (!channel) return;
 
-  const desc = users.length
-    ? users.map((u, i) => `**${i + 1}.** <@${u.id}> — 💰 ${u.coins}`).join("\n")
-    : "No hay usuarios aún.";
-
   const embed = new EmbedBuilder()
-    .setTitle("🏆 Top Coins • MVP")
-    .setDescription(desc)
-    .setColor(0xFFD700)
-    .setTimestamp();
+    .setTitle(title)
+    .setDescription(
+      users.length
+        ? users.map((u, i) => `**${i + 1}.** <@${u.id}> — ${emoji} ${u.value}`).join("\n")
+        : "Sin datos"
+    )
+    .setColor(0xFFD700);
 
-  const msgs = await channel.messages.fetch({ limit: 10 });
+  const msgs = await channel.messages.fetch({ limit: 5 });
   await channel.bulkDelete(msgs, true);
   await channel.send({ embeds: [embed] });
 }
 
 /* =======================
-   🛍️ TIENDA
+   🛍️ TIENDA (UNA SOLA VEZ)
 ======================= */
-async function sendShop() {
+async function sendShopOnce() {
   const channel = client.channels.cache.get(SHOP_CHANNEL_ID);
   if (!channel) return;
 
-  async function sendCategory(title, items, key) {
-    const embed = new EmbedBuilder()
-      .setTitle(title)
-      .setDescription(items.map(i =>
-        `**${i.name}**\n${i.description}\n💰 ${i.price}`
-      ).join("\n\n"))
-      .setColor(0xF39C12);
+  const msgs = await channel.messages.fetch({ limit: 5 });
+  if (msgs.size > 0) return;
 
-    const menu = new StringSelectMenuBuilder()
-      .setCustomId(`shop_${key}`)
-      .setPlaceholder("Selecciona un ítem")
-      .addOptions(items.map(i => ({
-        label: i.name,
-        description: `Precio: ${i.price} coins`,
-        value: i.name
-      })));
+  const embed = new EmbedBuilder()
+    .setTitle("🛍️ Tienda MVP")
+    .setDescription("Selecciona un item y confirma la compra")
+    .setColor(0xF39C12);
 
-    const row = new ActionRowBuilder().addComponents(menu);
-    await channel.send({ embeds: [embed], components: [row] });
-  }
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId("shop_menu")
+    .setPlaceholder("Selecciona un item")
+    .addOptions(ALL_ITEMS.map(i => ({
+      label: i.name,
+      description: `${i.price} coins`,
+      value: i.name
+    })));
 
-  await sendCategory("🛍️ Tienda Oficial MVP", shopItemsMVP, "mvp");
-  await sendCategory("🎮 Items de Discord", shopItemsDiscord, "discord");
+  await channel.send({
+    embeds: [embed],
+    components: [new ActionRowBuilder().addComponents(menu)]
+  });
 }
 
 /* =======================
@@ -160,8 +162,9 @@ async function sendShop() {
 ======================= */
 client.once("ready", async () => {
   console.log("🤖 Bot conectado");
-  await sendShop();
-  await sendTopEmbed();
+  await sendShopOnce();
+  await sendTop("coins", TOP_COINS_CHANNEL_ID, "🏆 Top Coins", "💰");
+  await sendTop("xp", TOP_XP_CHANNEL_ID, "✨ Top XP", "✨");
 });
 
 /* =======================
@@ -169,8 +172,7 @@ client.once("ready", async () => {
 ======================= */
 client.on("messageCreate", async msg => {
   if (msg.author.bot) return;
-  const xp = await db.get(`xp_${msg.author.id}`) || 0;
-  await db.set(`xp_${msg.author.id}`, xp + 1);
+  await db.add(`xp_${msg.author.id}`, 1);
 });
 
 /* =======================
@@ -180,92 +182,67 @@ client.on("interactionCreate", async i => {
 
   /* SLASH */
   if (i.isChatInputCommand()) {
-
     if (i.commandName === "coins") {
-      const coins = await db.get(`coins_${i.user.id}`) || 0;
-      return i.reply({ content: `💰 Tienes **${coins} coins**`, ephemeral: true });
+      return i.reply({ content: `💰 Coins: ${await db.get(`coins_${i.user.id}`) || 0}`, ephemeral: true });
     }
 
     if (i.commandName === "xp") {
-      const xp = await db.get(`xp_${i.user.id}`) || 0;
-      return i.reply({ content: `✨ Tienes **${xp} XP**`, ephemeral: true });
+      return i.reply({ content: `✨ XP: ${await db.get(`xp_${i.user.id}`) || 0}`, ephemeral: true });
     }
 
     if (i.commandName === "inventory") {
       const inv = await db.get(`inv_${i.user.id}`) || [];
-      return i.reply({
-        content: inv.length ? `🎒 Inventario:\n• ${inv.join("\n• ")}` : "🎒 Inventario vacío",
-        ephemeral: true
-      });
+      return i.reply({ content: inv.length ? inv.join("\n") : "Inventario vacío", ephemeral: true });
     }
 
-    if (i.commandName === "tienda") {
-      await sendShop();
-      return i.reply({ content: "🛍️ Tienda enviada correctamente", ephemeral: true });
+    if (i.commandName === "modifycoins" && i.user.id === OWNER_ID) {
+      const u = i.options.getUser("usuario");
+      const c = i.options.getInteger("cantidad");
+      await db.add(`coins_${u.id}`, c);
+      await sendTop("coins", TOP_COINS_CHANNEL_ID, "🏆 Top Coins", "💰");
+      return i.reply({ content: "Coins modificadas", ephemeral: true });
     }
 
-    if (i.commandName === "topcoins") {
-      await sendTopEmbed();
-      return i.reply({ content: "🏆 Top actualizado", ephemeral: true });
-    }
-
-    if (i.commandName === "modifycoins") {
-      if (i.user.id !== OWNER_ID) {
-        return i.reply({ content: "❌ Sin permiso", ephemeral: true });
-      }
-
-      const user = i.options.getUser("usuario");
-      const amount = i.options.getInteger("cantidad");
-      const reason = i.options.getString("razon");
-
-      const coins = await db.get(`coins_${user.id}`) || 0;
-      await db.set(`coins_${user.id}`, coins + amount);
-
-      return i.reply({
-        content: `💰 Coins modificadas a <@${user.id}>\n📌 ${reason}`,
-        ephemeral: true
-      });
+    if (i.commandName === "modifyxp" && i.user.id === OWNER_ID) {
+      const u = i.options.getUser("usuario");
+      const c = i.options.getInteger("cantidad");
+      await db.add(`xp_${u.id}`, c);
+      await sendTop("xp", TOP_XP_CHANNEL_ID, "✨ Top XP", "✨");
+      return i.reply({ content: "XP modificada", ephemeral: true });
     }
   }
 
-  /* SELECT MENU */
+  /* SELECT */
   if (i.isStringSelectMenu()) {
     const item = ALL_ITEMS.find(x => x.name === i.values[0]);
-    if (!item) return;
-
     const embed = new EmbedBuilder()
-      .setTitle(`🛒 ${item.name}`)
+      .setTitle(item.name)
       .setDescription(item.description)
-      .addFields({ name: "Precio", value: `${item.price} coins` })
-      .setColor(0x2ecc71);
+      .addFields({ name: "Precio", value: `${item.price} coins` });
 
-    const button = new ButtonBuilder()
+    const btn = new ButtonBuilder()
       .setCustomId(`buy_${item.name}`)
       .setLabel("Comprar")
       .setStyle(ButtonStyle.Success);
 
-    const row = new ActionRowBuilder().addComponents(button);
-    return i.update({ embeds: [embed], components: [row] });
+    return i.update({ embeds: [embed], components: [new ActionRowBuilder().addComponents(btn)] });
   }
 
-  /* BOTÓN COMPRA */
-  if (i.isButton() && i.customId.startsWith("buy_")) {
+  /* BUY */
+  if (i.isButton()) {
     const name = i.customId.replace("buy_", "");
     const item = ALL_ITEMS.find(x => x.name === name);
-    if (!item) return;
 
     const coins = await db.get(`coins_${i.user.id}`) || 0;
-    if (coins < item.price) {
-      return i.reply({ content: "❌ No tienes coins suficientes", ephemeral: true });
-    }
+    if (coins < item.price) return i.reply({ content: "❌ Coins insuficientes", ephemeral: true });
 
-    await db.set(`coins_${i.user.id}`, coins - item.price);
+    await db.add(`coins_${i.user.id}`, -item.price);
+    await db.push(`inv_${i.user.id}`, item.name);
 
-    const inv = await db.get(`inv_${i.user.id}`) || [];
-    inv.push(item.name);
-    await db.set(`inv_${i.user.id}`, inv);
+    const owner = await client.users.fetch(OWNER_ID);
+    await owner.send(`🛒 Compra:\nUsuario: ${i.user.tag}\nItem: ${item.name}`);
 
-    await sendTopEmbed();
+    await sendTop("coins", TOP_COINS_CHANNEL_ID, "🏆 Top Coins", "💰");
     return i.reply({ content: `✅ Compraste **${item.name}**`, ephemeral: true });
   }
 });
