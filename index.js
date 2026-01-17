@@ -30,7 +30,7 @@ const SHOP_CHANNEL_ID = "1461258249574813707";
    🖼️ BANNERS
 ======================= */
 const SHOP_BANNER_URL =
-  "https://media.discordapp.net/attachments/1416377941541261503/1461533727686656175/WhatsApp_Image_2026-01-15_at_19.31.47.jpeg?ex=696c385a&is=696ae6da&hm=9edf37a0102fa19ff42d8e132e6441549627a794476ee2b1107c4892ebeb5460&=&format=webp&width=1200&height=800";
+  "https://cdn.discordapp.com/attachments/1416377941541261503/1461529196030459905/WhatsApp_Image_2026-01-15_at_19.14.20.jpeg";
 
 const DISCORD_ITEMS_BANNER_URL =
   "https://cdn.discordapp.com/attachments/1416377941541261503/1461533727359373433/WhatsApp_Image_2026-01-15_at_19.32.25.jpeg";
@@ -109,7 +109,7 @@ async function updateTop() {
     .sort((a, b) => b.value - a.value)
     .slice(0, 10);
 
-  const channel = client.channels.cache.get(TOP_CHANNEL_ID);
+  const channel = await client.channels.fetch(TOP_CHANNEL_ID).catch(() => null);
   if (!channel) return;
 
   const embed = new EmbedBuilder()
@@ -117,8 +117,13 @@ async function updateTop() {
     .setDescription(users.map((u, i) => `**${i + 1}.** <@${u.id}> — 💰 ${u.value}`).join("\n"))
     .setColor(0xFFD700);
 
-  const msgs = await channel.messages.fetch({ limit: 5 });
-  await channel.bulkDelete(msgs, true);
+  try {
+    const msgs = await channel.messages.fetch({ limit: 5 });
+    await channel.bulkDelete(msgs, true);
+  } catch (err) {
+    console.log("⚠️ No se pudieron borrar mensajes antiguos:", err.message);
+  }
+
   await channel.send({ embeds: [embed] });
 }
 
@@ -126,20 +131,16 @@ async function updateTop() {
    🛍️ TIENDA AUTOMÁTICA
 ======================= */
 async function sendShop(force = false) {
-  const channel = client.channels.cache.get(SHOP_CHANNEL_ID);
+  const channel = await client.channels.fetch(SHOP_CHANNEL_ID).catch(() => null);
   if (!channel) return;
 
-  const msgs = await channel.messages.fetch({ limit: 5 });
-  if (!force && msgs.size > 0) return;
+  try {
+    const msgs = await channel.messages.fetch({ limit: 5 });
+    await channel.bulkDelete(msgs, true);
+  } catch {}
 
-  // Borra mensajes antiguos
-  await channel.bulkDelete(msgs, true);
-
-  // === Embed general para items MVP ===
-  const mvpDescription = shopItemsMVP
-    .map(i => `**${i.name}** — 💰 ${i.price}\n${i.description}`)
-    .join("\n\n");
-
+  // Embed MVP
+  const mvpDescription = shopItemsMVP.map(i => `**${i.name}** — 💰 ${i.price}\n${i.description}`).join("\n\n");
   const embedMVP = new EmbedBuilder()
     .setTitle("🌟 Tienda MVP")
     .setDescription(mvpDescription)
@@ -150,22 +151,12 @@ async function sendShop(force = false) {
   const mvpMenu = new StringSelectMenuBuilder()
     .setCustomId("shop_menu")
     .setPlaceholder("🛒 Selecciona un item MVP")
-    .addOptions(shopItemsMVP.map(i => ({
-      label: i.name,
-      description: `💰 ${i.price}`,
-      value: i.name
-    })));
+    .addOptions(shopItemsMVP.map(i => ({ label: i.name, description: `💰 ${i.price}`, value: i.name })));
 
-  await channel.send({
-    embeds: [embedMVP],
-    components: [new ActionRowBuilder().addComponents(mvpMenu)]
-  });
+  await channel.send({ embeds: [embedMVP], components: [new ActionRowBuilder().addComponents(mvpMenu)] });
 
-  // === Embed general para items Discord ===
-  const discordDescription = shopItemsDiscord
-    .map(i => `**${i.name}** — 💰 ${i.price}\n${i.description}`)
-    .join("\n\n");
-
+  // Embed Discord
+  const discordDescription = shopItemsDiscord.map(i => `**${i.name}** — 💰 ${i.price}\n${i.description}`).join("\n\n");
   const embedDiscord = new EmbedBuilder()
     .setTitle("💻 Items Discord")
     .setDescription(discordDescription)
@@ -176,16 +167,9 @@ async function sendShop(force = false) {
   const discordMenu = new StringSelectMenuBuilder()
     .setCustomId("shop_menu")
     .setPlaceholder("🛒 Selecciona un item Discord")
-    .addOptions(shopItemsDiscord.map(i => ({
-      label: i.name,
-      description: `💰 ${i.price}`,
-      value: i.name
-    })));
+    .addOptions(shopItemsDiscord.map(i => ({ label: i.name, description: `💰 ${i.price}`, value: i.name })));
 
-  await channel.send({
-    embeds: [embedDiscord],
-    components: [new ActionRowBuilder().addComponents(discordMenu)]
-  });
+  await channel.send({ embeds: [embedDiscord], components: [new ActionRowBuilder().addComponents(discordMenu)] });
 }
 
 /* =======================
@@ -208,7 +192,6 @@ client.on("messageCreate", async msg => {
    ⚙️ INTERACCIONES
 ======================= */
 client.on("interactionCreate", async i => {
-
   if (i.isChatInputCommand()) {
 
     if (i.commandName === "coins")
@@ -249,7 +232,8 @@ client.on("interactionCreate", async i => {
         .setFooter({ text: `Modificado por ${i.user.tag}` })
         .setTimestamp();
 
-      client.channels.cache.get(LOG_COINS_CHANNEL_ID)?.send({ embeds: [embed] });
+      const logChannel = await client.channels.fetch(LOG_COINS_CHANNEL_ID).catch(() => null);
+      logChannel?.send({ embeds: [embed] });
       await updateTop();
 
       return i.reply({ content: "✅ Coins actualizadas", ephemeral: true });
@@ -260,7 +244,8 @@ client.on("interactionCreate", async i => {
     const item = ALL_ITEMS.find(x => x.name === i.values[0]);
     const embed = new EmbedBuilder()
       .setTitle(item.name)
-      .setDescription(`💰 ${item.price} • ${item.description}`)
+      .setDescription(`${item.description}\n\n💰 Precio: ${item.price}`)
+      .setImage(DISCORD_ITEMS_BANNER_URL)
       .setColor(0xFFB6C1);
 
     const btn = new ButtonBuilder()
