@@ -59,14 +59,15 @@ const shopItemsMVP = [
   { name: "Creepypasta leído por Fani & Misa", price: 200, description: "Las owners leerán un copypaste de tu elección." },
   { name: "Pase para compartir rol personalizado", price: 170, description: "Permite compartir un rol personalizado con otro miembro." },
   { name: "Pase para canal personalizado", price: 150, description: "Acceso individual a un canal personalizado." },
-  { name: "Cambio de color de rol personalizado", price: 150, description: "Cambio único de color del rol." }
+  { name: "Cambio de color de rol personalizado", price: 100, description: "Cambio único de color del rol." }
 ];
 
 const shopItemsDiscord = [
   { name: "Canal personalizado", price: 320, description: "Canal para ti y dos personas más." },
   { name: "Color cromático para rol", price: 220, description: "Rol cromático por un mes." },
-  { name: "Silenciamiento", price: 150, description: "Mute por una hora." },
-  { name: "Rol personalizado", price: 120, description: "Rol sin color." },
+  { name: "Boosters", price: 120, description: "Apoyo al servidor." },
+  { name: "Silenciamiento", price: 100, description: "Mute por una hora." },
+  { name: "Rol personalizado", price: 80, description: "Rol sin color." },
   { name: "Icono de rol", price: 60, description: "Icono para tu rol." },
   { name: "Color de rol", price: 50, description: "Añadir color." },
   { name: "Sticker", price: 40, description: "Añadir sticker." },
@@ -93,7 +94,9 @@ const commands = [
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
-/* ====== ÚNICA ADICIÓN: try/catch (nada más fue cambiado) ====== */
+/* =======================
+   🔁 REGISTRO DE COMANDOS
+======================= */
 (async () => {
   try {
     await rest.put(
@@ -105,7 +108,6 @@ const rest = new REST({ version: "10" }).setToken(TOKEN);
     console.error("❌ Error registrando comandos:", err);
   }
 })();
-/* ============================================================= */
 
 /* =======================
    🔝 TOP AUTOMÁTICO
@@ -123,7 +125,11 @@ async function updateTop() {
 
   const embed = new EmbedBuilder()
     .setTitle("🏆 Top Coins • MVP")
-    .setDescription(users.map((u, i) => **${i + 1}.** <@${u.id}> — 💰 ${u.value}).join("\n"))
+    .setDescription(
+      users
+        .map((u, i) => `**${i + 1}.** <@${u.id}> — 💰 ${u.value}`)
+        .join("\n")
+    )
     .setColor(0xFFD700);
 
   try {
@@ -140,4 +146,5 @@ async function updateTop() {
    🔑 LOGIN
 ======================= */
 client.login(TOKEN);
+
 
